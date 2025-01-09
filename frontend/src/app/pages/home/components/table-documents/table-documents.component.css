@@ -1,0 +1,91 @@
+/* Transiciones para elementos interactivos */
+.custom-table th, .custom-table td {
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.custom-table tr:hover {
+  background-color: #e8f4ff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.exact-search-checkbox .mat-checkbox {
+  transition: transform 0.3s ease;
+}
+
+.exact-search-checkbox:hover .mat-checkbox {
+  transform: scale(1.1);
+}
+
+/* Tabla */
+.custom-table {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+}
+
+.custom-table th {
+  background-color: #007bff;
+  color: white;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.custom-table td {
+  color: #333333;
+}
+
+.custom-table tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Fondo del contenedor */
+.table-container {
+  background-color: #f5f7fa;
+  border: 1px solid #e0e0e0;
+}
+
+/* Paginador */
+.mat-paginator {
+  background-color: #f5f7fa;
+  color: #333;
+}
+
+/* Icono al lado del checkbox */
+.exact-search-checkbox::before {
+  content: '🔍';
+  margin-right: 5px;
+  font-size: 18px;
+}
+
+.exact-search-checkbox {
+  color: #007bff;
+  font-weight: bold;
+}
+
+/* Efecto de enfoque en el campo de búsqueda */
+.search-field input.mat-input-element:focus {
+  border: 2px solid #007bff;
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+/* Espaciado entre el contenedor de búsqueda y la tabla */
+.search-container {
+  margin-bottom: 30px;
+  padding: 15px;
+}
+
+/* Espaciado adicional en la tabla */
+.custom-table td, .custom-table th {
+  padding: 15px;
+}
+
+/* Botones del paginador */
+.mat-paginator .mat-button {
+  color: #007bff;
+  font-weight: bold;
+}
+
+.mat-paginator .mat-button:hover {
+  background-color: #e8f4ff;
+}

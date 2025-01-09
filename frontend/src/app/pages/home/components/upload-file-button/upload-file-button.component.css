@@ -1,0 +1,16 @@
+/* file-upload.component.css */
+.input_fileupload--hidden {
+    display: none;
+  }
+  
+  div {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.5rem 0;
+    padding-bottom: 20px;
+  }
+  
+  div span {
+    flex: 1;
+  }
