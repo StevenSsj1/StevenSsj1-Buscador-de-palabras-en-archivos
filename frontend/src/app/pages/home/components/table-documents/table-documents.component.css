@@ -52,15 +52,64 @@
 }
 
 /* Icono al lado del checkbox */
+.exact-search-checkbox {
+  display: flex; /* Flexbox para alinear contenido en línea */
+  align-items: center; /* Alineación vertical centrada */
+  gap: 5px; /* Espaciado entre el icono y el texto */
+  color: #007bff;
+  font-weight: bold;
+  cursor: pointer; /* Indicador de interactividad */
+  font-size: 16px;
+}
+
 .exact-search-checkbox::before {
-  content: '🔍';
-  margin-right: 5px;
+  content: '🔍'; /* Icono al lado del checkbox */
   font-size: 18px;
+  display: inline-block; /* Asegura que se trate como un elemento en línea */
+}
+
+/* Contenedor de búsqueda */
+.search-field {
+  width: 100%; /* Se asegura de que tome todo el ancho del contenedor */
+  max-width: 800px; /* Tamaño máximo */
+  margin: 0 auto 20px auto; /* Centrado horizontal y espacio inferior */
+}
+
+/* Campo de búsqueda más amplio */
+.search-field input.mat-input-element {
+  height: 50px; /* Más alto */
+  font-size: 16px; /* Fuente más grande */
+  padding: 10px 15px; /* Espaciado interno */
+  border-radius: 8px; /* Bordes redondeados */
+  border: 1px solid #ccc; /* Bordes visibles */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.search-field input.mat-input-element:focus {
+  border-color: #007bff; /* Azul al enfocarse */
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+/* Checkbox alineado al lado de la barra de búsqueda */
+.search-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Espacio entre barra y checkbox */
+  gap: 15px; /* Separación */
+  flex-wrap: wrap; /* Ajuste en caso de pantallas pequeñas */
 }
 
 .exact-search-checkbox {
-  color: #007bff;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
   font-weight: bold;
+  color: #007bff;
+  cursor: pointer;
+}
+
+.exact-search-checkbox:hover {
+  text-decoration: underline;
 }
 
 /* Efecto de enfoque en el campo de búsqueda */

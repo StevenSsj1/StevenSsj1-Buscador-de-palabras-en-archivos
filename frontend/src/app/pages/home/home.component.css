@@ -1,0 +1,72 @@
+/* Contenedor principal */
+.home-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f9fafc;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-family: 'Arial', sans-serif;
+}
+
+/* Encabezado */
+.home-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.home-header h1 {
+  font-size: 28px;
+  color: #007bff;
+  font-weight: bold;
+  margin: 0;
+}
+
+/* Sección de subida de archivos */
+.upload-section {
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.upload-section app-file-upload {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Sección de búsqueda */
+.search-section {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.search-section app-document-search {
+  display: block;
+  margin: 0 auto;
+}
+
+/* General */
+section {
+  margin-bottom: 20px;
+}
+
+/* Transiciones suaves */
+.home-container section:hover {
+  transform: translateY(-5px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Contenedor del widget de conteo */
+.count-widget-container {
+  text-align: center;
+  margin-bottom: 20px;
+}

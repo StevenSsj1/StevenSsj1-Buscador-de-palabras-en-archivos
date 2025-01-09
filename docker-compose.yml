@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
@@ -27,32 +25,25 @@ services:
       retries: 5
 
   pdf-processor:
-      build: .venv\
-      volumes:
-        - .venv\assets:/app/pdfs
-        - ./output:/app/output
-        - ./logs:/app/logs
-      environment:
-        - PYTHONUNBUFFERED=1
-        - ES_HOST=elasticsearch
-        - ES_PORT=9200
-      ports:
-        - "8000:8000"
-      depends_on:
-        elasticsearch:
-          condition: service_healthy
-      networks:
-        - elastic
-  web-app:
-      build: frontend\
-      ports:
-        - "80:4200"
-      depends_on:
-        pdf-processor:
-          condition: service_healthy
-      networks:
-        - elastic
+    build: .venv\
+    volumes:
+      - ${PDF_DIR}:/app/pdfs
+      - ${RUTA_SALIDA}:/app/pdfsoutput
+    environment:
+      - PDF_DIR=/app/pdfs
+      - RUTA_SALIDA=/app/pdfsoutput
+      - PYTHONUNBUFFERED=1
+      - ES_HOST=elasticsearch
+      - ES_PORT=9200
+    ports:
+      - "8000:8000"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - elastic
 
+  
 volumes:
   elasticsearch-data:
     driver: local

@@ -27,6 +27,7 @@ import { environment } from '../../../../../environments/enviroment';
 export class FileUploadComponent {
   private http = inject(HttpClient);
   private snackBar = inject(MatSnackBar);
+  private documentCountService = inject(DocumentService);
   private apiUrl = environment.apiUrl; // URL base
 
   @Input() accept = '.txt';
@@ -101,8 +102,10 @@ export class FileUploadComponent {
         return throwError(() => error);
       })
     ).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         // Guardamos los resultados en localStorage también
+        const count = response.hits.total.value || 0;
+        this.documentCountService.updateCount(count); // Actualizamos el contador
         localStorage.setItem('searchResults', JSON.stringify(response));
         this.snackBar.open('Búsqueda realizada con éxito', 'Cerrar', {
           duration: 3000

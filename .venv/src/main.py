@@ -3,9 +3,11 @@ from .routes import documents
 from fastapi.middleware.cors import CORSMiddleware
 from .utils.process_documents.pdf_management.service import ElasticsearchPdfProcessor
 from .utils.process_documents.word_management.word import ConvertidorWordPDF
+import os
 
-pdf_dir = "/app/pdfs"
-ruta_salida = "/app/pdfsoutput"  
+pdf_dir = os.getenv('PDF_DIR', '/app/pdfs')
+ruta_salida = os.getenv('RUTA_SALIDA', '/app/pdfsoutput')
+  
 convertidor = ConvertidorWordPDF(pdf_dir, ruta_salida)
 resultados = convertidor.convertir_todos()
 
