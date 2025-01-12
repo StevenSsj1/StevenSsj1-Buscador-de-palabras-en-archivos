@@ -43,6 +43,14 @@ services:
     networks:
       - elastic
 
+  web-app:
+    build: frontend\
+    ports:
+      - "80:80"
+    depends_on:
+      - pdf-processor
+    networks:
+      - elastic
   
 volumes:
   elasticsearch-data:

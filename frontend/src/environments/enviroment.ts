@@ -1,4 +1,4 @@
 export const environment = {
     production: false,
-    apiUrl: 'http://localhost:8000'
+    apiUrl: 'http://pdf-processor:8000'
 };
