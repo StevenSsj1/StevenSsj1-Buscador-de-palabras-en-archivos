@@ -65,4 +65,3 @@ class ElasticsearchPdfProcessor:
             
             total_indexed = sum(future.result() for future in as_completed(futures))
             logging.info(f"Total de documentos indexados: {total_indexed}")
-
