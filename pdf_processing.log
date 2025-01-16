@@ -1,0 +1,4 @@
+2025-01-12 22:12:27,382 - ERROR - Error procesando PDF: 'TextPDFProcessor' object has no attribute 'clean_metadata_value'
+2025-01-12 22:13:10,337 - ERROR - Error procesando PDF: 'TextPDFProcessor' object has no attribute '_processed_files'
+2025-01-12 22:14:43,535 - INFO - PDF procesado exitosamente: .venv/assets/Politicas.pdf
+2025-01-12 22:16:16,063 - INFO - PDF procesado exitosamente: .venv/assets/Politicas.pdf
