@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from .routes import documents
 from fastapi.middleware.cors import CORSMiddleware
-from .utils.process_documents.pdf_management.service import ElasticsearchPdfProcessor
+from .utils.process_documents.pdf_management.service import PDFElasticsearchService
 from .utils.process_documents.word_management.word import ConvertidorWordPDF
 import os
 
@@ -11,8 +11,13 @@ ruta_salida = os.getenv('RUTA_SALIDA', '/app/pdfsoutput')
 convertidor = ConvertidorWordPDF(pdf_dir, ruta_salida)
 resultados = convertidor.convertir_todos()
 
-processor = ElasticsearchPdfProcessor(pdf_dir)
-processor.process_and_index_pdfs()
+pdf_service = PDFElasticsearchService(
+    es_host='elasticsearch',
+    es_port=9200,
+
+)
+
+result = pdf_service.process_directory(pdf_dir)
 
 app = FastAPI(
     title="Documents Processing API",

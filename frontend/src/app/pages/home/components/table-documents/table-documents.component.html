@@ -13,7 +13,6 @@
   [checked]="isExactSearch">
   Búsqueda exacta
 </mat-checkbox>
-
 </div>
 
 <div class="table-container mat-elevation-z8">
@@ -36,6 +35,18 @@
       <td mat-cell *matCellDef="let row">
         {{row._source.content.substring(0, 100)}}...
       </td>
+    </ng-container>
+
+    <!-- Número de Página Column -->
+    <ng-container matColumnDef="page_number">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Número de Página </th>
+      <td mat-cell *matCellDef="let row"> {{row._source.page_number}} </td>
+    </ng-container>
+
+    <!-- Path Relativo Column -->
+    <ng-container matColumnDef="relative_path">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Path Relativo </th>
+      <td mat-cell *matCellDef="let row"> {{row._source.relative_path}} </td>
     </ng-container>
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>

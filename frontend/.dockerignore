@@ -1,0 +1,44 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Build output
+/dist
+/.angular
+/.tmp
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Testing
+/coverage
+/test-results
+/cypress/videos/
+/cypress/screenshots/
+
+# Git
+.git
+.gitignore
+
+# Configuración y entorno
+.env
+.env.local
+.env.*.local
+
+# Documentación
+/docs
+*.md
+!README.md
+
+# Otros
+*.log
+*.swp
+.idea/

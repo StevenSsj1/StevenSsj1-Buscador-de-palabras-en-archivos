@@ -24,7 +24,7 @@ export class DocumentService {
   }
 
   exactSearchDocuments(searchTerm: string): Observable<any> {
-    return this.http.get(`${this.baseUrl}/api_documents/exact_search?search_term=${searchTerm}&index_name=pdfs&size=100`)
+    return this.http.get(`${this.baseUrl}/api_documents/search_exact?search_term=${searchTerm}&index_name=pdfs&size=100`)
       .pipe(
         tap((response: any) => this.updateCount(response.totalCount)) // Asegúrate de que response.totalCount es el valor correcto
       );

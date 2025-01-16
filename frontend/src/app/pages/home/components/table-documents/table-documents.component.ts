@@ -1,4 +1,4 @@
-import { Component, ViewChild, OnInit } from '@angular/core';
+import { Component, ViewChild, OnInit, AfterViewInit } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
@@ -24,9 +24,9 @@ import { DocumentService } from '../../services/documents-search.service';
   templateUrl: './table-documents.component.html',
   styleUrls: ['./table-documents.component.css']
 })
-export class DocumentSearchComponent implements OnInit {
+export class DocumentSearchComponent implements OnInit, AfterViewInit {
   // Definimos las columnas que queremos mostrar
-  displayedColumns: string[] = ['id', 'name_document', 'full_content'];
+  displayedColumns: string[] = ['id', 'name_document', 'full_content', 'page_number', 'relative_path'];
   dataSource: MatTableDataSource<DocumentData>;
   isExactSearch: boolean = false;
   currentSearchTerm: string = '';
@@ -38,14 +38,12 @@ export class DocumentSearchComponent implements OnInit {
   constructor(private documentService: DocumentService) {
     this.dataSource = new MatTableDataSource<DocumentData>([]);
   }
-  
 
   ngOnInit() {
     // Realizamos la búsqueda inicial
     this.loadDocuments('');
   }
 
-  // eslint-disable-next-line @angular-eslint/use-lifecycle-interface
   ngAfterViewInit() {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
@@ -62,41 +60,48 @@ export class DocumentSearchComponent implements OnInit {
     // Realizar nueva búsqueda con el término actual
     this.loadDocuments(this.currentSearchTerm);
   }
+
   handleSearchResults(results: any) {
-    const documents = results.results.map((result: any) => ({
-      _id: result.document_name,
-      _source: {
-        name_document: result.document_name,
-        content: result.content, // Concatenar los highlights para formar el contenido
-        page_number: result.page_number,
-        total_pages: result.total_pages
-      }
-    }));
+    const documents = results.results.map((result: any) => {
+      return result.matching_pages.map((page: any) => ({
+        _id: result.filename, // Utilizar el nombre del archivo como ID
+        _source: {
+          name_document: result.filename,
+          content: Array.isArray(page.highlights) ? page.highlights.join(' ') : page.highlights, // Verificar si highlights es un array
+          page_number: page.page_number, // Número de página
+          total_pages: result.total_pages,
+          relative_path: result.relative_path // Path relativo
+        }
+      }));
+    }).flat(); // Aplanar el array de páginas
     this.dataSource.data = documents;
   }
-  // eslint-disable-next-line @typescript-eslint/no-inferrable-types
+
   loadDocuments(searchTerm: string = ''): void {
     this.isLoading = true;
-  
+
     // Elegir el método de búsqueda según el estado del checkbox
     const searchMethod = this.isExactSearch ? 
       this.documentService.exactSearchDocuments(searchTerm) :
       this.documentService.searchDocuments(searchTerm);
-  
+
     // Suscribirse al método de búsqueda seleccionado
     searchMethod.subscribe({
       next: (response) => {
-        console.log(response)
+        console.log(response);
         // Mapear los resultados de la búsqueda a la estructura de DocumentData
-        const documents = response.results.map((result: any) => ({
-          _id: result.document_name,
-          _source: {
-            name_document: result.document_name,
-            content: result.content, // Concatenar los highlights para formar el contenido
-            page_number: result.page_number,
-            total_pages: result.total_pages
-          }
-        }));
+        const documents = response.results.map((result: any) => {
+          return result.matching_pages.map((page: any) => ({
+            _id: result.filename, // Utilizar el nombre del archivo como ID
+            _source: {
+              name_document: result.filename,
+              content: Array.isArray(page.content) ? page.content.join(' ') : page.content, // Verificar si highlights es un array
+              page_number: page.page_number, // Número de página
+              total_pages: result.total_pages,
+              relative_path: result.relative_path // Path relativo
+            }
+          }));
+        }).flat(); // Aplanar el array de páginas
         // Asignar los documentos obtenidos al dataSource
         this.dataSource.data = documents;
       },
@@ -110,5 +115,4 @@ export class DocumentSearchComponent implements OnInit {
       }
     });
   }
-
 }
