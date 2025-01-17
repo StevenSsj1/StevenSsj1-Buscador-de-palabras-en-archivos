@@ -10,17 +10,25 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { DocumentService } from '../../services/documents-search.service';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatButtonModule } from '@angular/material/button';
+import { NgIf } from '@angular/common';
+import { MatDialog } from '@angular/material/dialog';
+import { FileDetectionDialogComponent } from './document-search.component';
 
 @Component({
   selector: 'app-document-search',
   standalone: true,
-  imports: [  
+  imports: [ 
+    MatProgressSpinnerModule,
+    MatButtonModule, 
     MatFormFieldModule,
     MatInputModule,
     MatTableModule,
     MatSortModule,
     MatPaginatorModule,
-    MatCheckboxModule ],
+    MatCheckboxModule,
+    NgIf ], 
   templateUrl: './table-documents.component.html',
   styleUrls: ['./table-documents.component.css']
 })
@@ -31,11 +39,14 @@ export class DocumentSearchComponent implements OnInit, AfterViewInit {
   isExactSearch: boolean = false;
   currentSearchTerm: string = '';
   isLoading: boolean = false;
+  isCheckingNewFiles: boolean = false;
+
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private documentService: DocumentService) {
+  constructor(private documentService: DocumentService, private dialog: MatDialog
+  ) {
     this.dataSource = new MatTableDataSource<DocumentData>([]);
   }
 
@@ -76,7 +87,40 @@ export class DocumentSearchComponent implements OnInit, AfterViewInit {
     }).flat(); // Aplanar el array de páginas
     this.dataSource.data = documents;
   }
-
+  checkNewFiles(): void {
+    this.isCheckingNewFiles = true;
+    this.documentService.checkNewFiles().subscribe({
+      next: (response) => {
+        // Abrir el modal con los resultados
+        this.dialog.open(FileDetectionDialogComponent, {
+          width: '500px',
+          data: response
+        });
+        
+        // Recargar los documentos después de detectar nuevos archivos
+        this.loadDocuments(this.currentSearchTerm);
+      },
+      error: (error) => {
+        // Mostrar error en el modal
+        this.dialog.open(FileDetectionDialogComponent, {
+          width: '500px',
+          data: {
+            status: 'error',
+            total_found: 0,
+            total_processed: 0,
+            processed_files: [],
+            failed_files: [{
+              path: 'Error del sistema',
+              error: error.message || 'Error desconocido al verificar archivos'
+            }]
+          }
+        });
+      },
+      complete: () => {
+        this.isCheckingNewFiles = false;
+      }
+    });
+  }
   loadDocuments(searchTerm: string = ''): void {
     this.isLoading = true;
 
@@ -88,7 +132,6 @@ export class DocumentSearchComponent implements OnInit, AfterViewInit {
     // Suscribirse al método de búsqueda seleccionado
     searchMethod.subscribe({
       next: (response) => {
-        console.log(response);
         // Mapear los resultados de la búsqueda a la estructura de DocumentData
         const documents = response.results.map((result: any) => {
           return result.matching_pages.map((page: any) => ({

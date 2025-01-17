@@ -104,7 +104,8 @@ export class FileUploadComponent {
     ).subscribe({
       next: (response: any) => {
         // Guardamos los resultados en localStorage también
-        const count = response.hits.total.value || 0;
+
+        const count = response.results.length || 0;
         this.documentCountService.updateCount(count); // Actualizamos el contador
         localStorage.setItem('searchResults', JSON.stringify(response));
         this.snackBar.open('Búsqueda realizada con éxito', 'Cerrar', {

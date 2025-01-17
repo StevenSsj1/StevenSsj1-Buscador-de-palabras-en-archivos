@@ -13,6 +13,22 @@
   [checked]="isExactSearch">
   Búsqueda exacta
 </mat-checkbox>
+
+<button 
+  mat-raised-button 
+  class="check-files-button custom-button"
+  (click)="checkNewFiles()"
+  [disabled]="isCheckingNewFiles">
+  <ng-template [ngIf]="isCheckingNewFiles"> 
+     <span class="button-text">Detectar Nuevos Archivos</span>
+  </ng-template>
+  <mat-spinner 
+    diameter="20" 
+    *ngIf="isCheckingNewFiles"
+    class="button-spinner">
+  </mat-spinner>
+  Refrescar Archivos
+</button>
 </div>
 
 <div class="table-container mat-elevation-z8">

@@ -30,6 +30,10 @@ export class DocumentService {
       );
   }
 
+  checkNewFiles(): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/api_documents/check_new_files`, {});
+  }
+
   updateCount(count: number) {
     this.documentCount.next(count);
   }

@@ -138,3 +138,60 @@
 .mat-paginator .mat-button:hover {
   background-color: #e8f4ff;
 }
+
+
+
+.check-files-button {
+  min-width: 180px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+}
+
+.button-spinner {
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .search-controls {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .search-field {
+    flex: 1;
+  }
+}
+
+.custom-button {
+  background-color: white !important;
+  color: #007bff !important;
+  border: 1px solid #007bff !important;
+}
+
+.custom-button:hover {
+  background-color: #f8f9fa !important;
+}
+
+.custom-button:disabled {
+  color: rgba(0, 123, 255, 0.5) !important;
+  border-color: rgba(0, 123, 255, 0.5) !important;
+}
+
+.check-files-button {
+  min-width: 180px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-spinner {
+  margin: 0;
+}
+
+.button-text {
+  font-weight: 500;
+}
