@@ -10,6 +10,7 @@ import { OnDestroy } from '@angular/core';
 
 @Component({
   selector: 'app-home',
+  standalone: true,
   imports: [DocumentSearchComponent, FileUploadComponent, HttpClientModule, DocumentCountWidgetComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
@@ -24,7 +25,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.subscription = this.documentService.documentCount$.subscribe(
       count => {
         this.documentCount = count;
-        console.log('Document Count:', this.documentCount);
       }
     );
 

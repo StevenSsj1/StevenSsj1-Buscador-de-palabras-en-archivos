@@ -1,4 +1,4 @@
-import { Component, ViewChild, OnInit, AfterViewInit } from '@angular/core';
+import { Component, ViewChild, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
@@ -16,6 +16,8 @@ import { NgIf } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { FileDetectionDialogComponent } from './document-search.component';
 import { LoggingService } from '../../../../service/logging.service';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-document-search',
@@ -29,18 +31,20 @@ import { LoggingService } from '../../../../service/logging.service';
     MatSortModule,
     MatPaginatorModule,
     MatCheckboxModule,
+    ReactiveFormsModule,
     NgIf ], 
   templateUrl: './table-documents.component.html',
   styleUrls: ['./table-documents.component.css']
 })
-export class DocumentSearchComponent implements OnInit, AfterViewInit {
-  // Definimos las columnas que queremos mostrar
+export class DocumentSearchComponent implements OnInit, AfterViewInit, OnDestroy {
   displayedColumns: string[] = ['id', 'name_document', 'full_content', 'page_number', 'relative_path'];
   dataSource: MatTableDataSource<DocumentData>;
   isExactSearch: boolean = false;
   currentSearchTerm: string = '';
   isLoading: boolean = false;
   isCheckingNewFiles: boolean = false;
+  searchControl = new FormControl(''); // Add this
+  private destroy$ = new Subject<void>(); // Add this for cleanup
 
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -49,17 +53,26 @@ export class DocumentSearchComponent implements OnInit, AfterViewInit {
   constructor(
     private documentService: DocumentService, 
     private dialog: MatDialog,
-    private logger: LoggingService
+    private logger: LoggingService,
 
   ) {
     this.dataSource = new MatTableDataSource<DocumentData>([]);
   }
 
   ngOnInit() {
-    // Realizamos la búsqueda inicial
+    // Setup the debounced search
+    this.searchControl.valueChanges.pipe(
+      debounceTime(500), // Wait 500ms after the user stops typing
+      distinctUntilChanged(), // Only emit if the value has changed
+      takeUntil(this.destroy$)
+    ).subscribe(value => {
+      this.currentSearchTerm = value || '';
+      this.loadDocuments(this.currentSearchTerm);
+    });
+
+    // Initial load
     this.loadDocuments('');
   }
-
   ngAfterViewInit() {
     this.dataSource.paginator = this.paginator;
     this.dataSource.sort = this.sort;
@@ -67,10 +80,13 @@ export class DocumentSearchComponent implements OnInit, AfterViewInit {
 
   applyFilter(event: Event) {
     const filterValue = (event.target as HTMLInputElement).value;
-    this.currentSearchTerm = filterValue;
-    this.loadDocuments(filterValue);
+    this.searchControl.setValue(filterValue);
   }
 
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
   onExactSearchChange(event: any) {
     this.isExactSearch = event.checked;
     // Realizar nueva búsqueda con el término actual
@@ -92,7 +108,7 @@ export class DocumentSearchComponent implements OnInit, AfterViewInit {
     }).flat(); // Aplanar el array de páginas
     this.dataSource.data = documents;
   }
-  checkNewFiles(): void {
+    checkNewFiles(): void {
     this.isCheckingNewFiles = true;
     this.logger.info('Iniciando detección de archivos nuevos', {
       component: 'DocumentSearchComponent',
