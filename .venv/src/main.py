@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .routes import documents
+from .routes import documents, search
 from fastapi.middleware.cors import CORSMiddleware
 from .utils.process_documents.pdf_management.service import PDFElasticsearchService
 from .utils.process_documents.word_management.word import ConvertidorWordPDF
@@ -41,4 +41,5 @@ app.add_middleware(
     allow_headers=["*"]
 )
 app.include_router(documents.router)
+app.include_router(search.router)
 
