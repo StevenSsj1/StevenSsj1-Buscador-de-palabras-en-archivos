@@ -25,21 +25,17 @@ import { LogContext } from '../interfaces/logging.interface';
   
     info(message: string, context: Partial<LogContext> = {}): void {
       const fullContext = this.getContext(context);
-      console.info(this.formatLog(message, fullContext), context.details || '');
     }
   
     error(message: string, context: Partial<LogContext> = {}): void {
       const fullContext = this.getContext(context);
-      console.error(this.formatLog(message, fullContext), context.details || '');
     }
   
     warning(message: string, context: Partial<LogContext> = {}): void {
       const fullContext = this.getContext(context);
-      console.warn(this.formatLog(message, fullContext), context.details || '');
     }
   
     success(message: string, context: Partial<LogContext> = {}): void {
       const fullContext = this.getContext(context);
-      console.log(this.formatLog(message, fullContext), context.details || '');
     }
   }
