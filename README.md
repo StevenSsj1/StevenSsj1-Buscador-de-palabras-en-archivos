@@ -18,7 +18,7 @@ El proyecto está construido usando una arquitectura de microservicios con tres 
 - **Servidor Web**: Nginx
 
 ## 📁 Estructura del Proyecto
-```
+
 proyecto/
 ├── envs/
 │   ├── elasticsearch.env
@@ -37,7 +37,6 @@ proyecto/
 ├── backend/
 │   └── requirements.txt
 
-```
 
 ## 🚀 Instalación y Configuración
 
