@@ -24,6 +24,15 @@ class PDFElasticsearchService:
         self.max_workers = max_workers
         self.setup_logging()
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+
+    async def close(self):
+        await self.es.close()
+
     def setup_logging(self):
         logging.basicConfig(
             level=logging.INFO,
@@ -32,44 +41,73 @@ class PDFElasticsearchService:
         )
 
     async def setup_index(self):
-        if not await self.es.indices.exists(index=self.index_name):
-            mapping = {
-                "mappings": {
-                    "properties": {
-                        "filename": {"type": "keyword"},
-                        "file_path": {"type": "keyword"},
-                        "relative_path": {"type": "keyword"},
-                        "pages": {
-                            "type": "nested",
-                            "properties": {
-                                "number": {"type": "integer"},
-                                "content": {"type": "text", "analyzer": "standard"},
-                                "is_image": {"type": "boolean"},
-                                "confidence": {"type": "float"}
+        try:
+            exists = await self.es.indices.exists(index=self.index_name)
+            if not exists:
+                mapping = {
+                    "settings": {
+                        "number_of_shards": 1,
+                        "number_of_replicas": 1,
+                        "analysis": {
+                            "analyzer": {
+                                "pdf_analyzer": {
+                                    "type": "custom",
+                                    "tokenizer": "standard",
+                                    "filter": ["lowercase", "asciifolding"]
+                                }
                             }
-                        },
-                        "total_pages": {"type": "integer"},
-                        "metadata": {
-                            "properties": {
-                                "autor": {"type": "text"},
-                                "titulo": {"type": "text"},
-                                "fecha_creacion": {"type": "date", "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"}
+                        }
+                    },
+                    "mappings": {
+                        "properties": {
+                            "filename": {"type": "keyword"},
+                            "file_path": {"type": "keyword"},
+                            "relative_path": {"type": "keyword"},
+                            "pages": {
+                                "type": "nested",  # Aseguramos que sea de tipo nested
+                                "properties": {
+                                    "number": {"type": "integer"},
+                                    "content": {
+                                        "type": "text",
+                                        "analyzer": "pdf_analyzer"
+                                    },
+                                    "is_image": {"type": "boolean"},
+                                    "confidence": {"type": "float"}
+                                }
+                            },
+                            "total_pages": {"type": "integer"},
+                            "metadata": {
+                                "properties": {
+                                    "autor": {"type": "text"},
+                                    "titulo": {"type": "text"},
+                                    "fecha_creacion": {
+                                        "type": "date",
+                                        "format": "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis"
+                                    }
+                                }
+                            },
+                            "document_info": {
+                                "properties": {
+                                    "tamano_archivo": {"type": "long"},
+                                    "fecha_procesamiento": {
+                                        "type": "date",
+                                        "format": "yyyy-MM-dd HH:mm:ss"
+                                    },
+                                    "tipo_procesamiento": {"type": "keyword"}
+                                }
+                            },
+                            "indexed_date": {
+                                "type": "date",
+                                "format": "yyyy-MM-dd HH:mm:ss"
                             }
-                        },
-                        "document_info": {
-                            "properties": {
-                                "tamano_archivo": {"type": "long"},
-                                "fecha_procesamiento": {"type": "date", "format": "yyyy-MM-dd HH:mm:ss"},
-                                "tipo_procesamiento": {"type": "keyword"}
-                            }
-                        },
-                        "indexed_date": {"type": "date", "format": "yyyy-MM-dd HH:mm:ss"},
-                        "directory_structure": {"type": "keyword"}
+                        }
                     }
                 }
-            }
-            self.es.indices.create(index=self.index_name, body=mapping)
-            logging.info(f"Índice '{self.index_name}' creado con éxito")
+                await self.es.indices.create(index=self.index_name, body=mapping)
+                logging.info(f"Índice '{self.index_name}' creado con éxito")
+        except Exception as e:
+            logging.error(f"Error al crear el índice: {str(e)}")
+            raise
 
     def find_pdf_files(self, root_dir: str) -> List[Path]:
         pdf_files = []
@@ -158,7 +196,7 @@ class PDFElasticsearchService:
             logging.error(error_msg)
             return {"success": False, "error": error_msg}
         
-    def process_directory(self, directory_path: str, parallel: bool = True) -> Dict:
+    async def process_directory(self, directory_path: str, parallel: bool = True) -> Dict:
         try:
             pdf_files = self.find_pdf_files(directory_path)
             total_files = len(pdf_files)
@@ -176,35 +214,36 @@ class PDFElasticsearchService:
             logging.info(f"Iniciando procesamiento de {total_files} archivos PDF")
 
             if parallel and total_files > 1:
-                with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-                    futures = []
-                    for pdf_path in pdf_files:
-                        futures.append(executor.submit(self.index_pdf, str(pdf_path), directory_path))
-                    
-                    for i, future in enumerate(futures):
-                        result = future.result()
-                        if result.get("success", False):
-                            results["successful"] += 1
-                        else:
-                            results["failed"] += 1
-                            results["errors"].append(result.get("error"))
-                        
-                        logging.info(f"Progreso: {i + 1}/{total_files} archivos procesados")
+                tasks = []
+                for pdf_path in pdf_files:
+                    tasks.append(self.index_pdf(str(pdf_path), directory_path))
+                
+                # Procesar archivos en paralelo con asyncio.gather
+                import asyncio
+                completed = await asyncio.gather(*tasks, return_exceptions=True)
+                
+                for result in completed:
+                    if isinstance(result, Exception):
+                        results["failed"] += 1
+                        results["errors"].append(str(result))
+                    elif result.get("success", False):
+                        results["successful"] += 1
+                    else:
+                        results["failed"] += 1
+                        results["errors"].append(result.get("error"))
             else:
-                for i, pdf_path in enumerate(pdf_files):
-                    result = self.index_pdf(str(pdf_path), directory_path)
+                for pdf_path in pdf_files:
+                    result = await self.index_pdf(str(pdf_path), directory_path)
                     if result.get("success", False):
                         results["successful"] += 1
                     else:
                         results["failed"] += 1
                         results["errors"].append(result.get("error"))
-                    
-                    logging.info(f"Progreso: {i + 1}/{total_files} archivos procesados")
 
-            logging.info(f"Procesamiento de directorio completado: {results}")
             return results
 
         except Exception as e:
             error_msg = f"Error procesando directorio {directory_path}: {str(e)}"
             logging.error(error_msg)
             return {"error": error_msg}
+            

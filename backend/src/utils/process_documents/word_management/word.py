@@ -32,12 +32,3 @@ class ConvertidorWordPDF:
         resultados = [self.convertir_archivo(archivo) for archivo in archivos]
         return resultados
 
-# Ejemplo de uso
-if __name__ == "__main__":
-    ruta_base = ".venv\\assets"  # Cambia esta ruta por la carpeta de entrada
-    ruta_salida = ".venv\\assets\output"  # Cambia esta ruta por la carpeta de salida
-    convertidor = ConvertidorWordPDF(ruta_base, ruta_salida)
-    resultados = convertidor.convertir_todos()
-
-    for exito, mensaje in resultados:
-        print("✓" if exito else "✗", mensaje)
