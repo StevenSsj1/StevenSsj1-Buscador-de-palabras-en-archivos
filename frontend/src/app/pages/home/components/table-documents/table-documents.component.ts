@@ -15,6 +15,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { NgIf } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { FileDetectionDialogComponent } from './document-search.component';
+import { LoggingService } from '../../../../service/logging.service';
 
 @Component({
   selector: 'app-document-search',
@@ -45,7 +46,11 @@ export class DocumentSearchComponent implements OnInit, AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
 
-  constructor(private documentService: DocumentService, private dialog: MatDialog
+  constructor(
+    private documentService: DocumentService, 
+    private dialog: MatDialog,
+    private logger: LoggingService
+
   ) {
     this.dataSource = new MatTableDataSource<DocumentData>([]);
   }
@@ -89,8 +94,20 @@ export class DocumentSearchComponent implements OnInit, AfterViewInit {
   }
   checkNewFiles(): void {
     this.isCheckingNewFiles = true;
+    this.logger.info('Iniciando detección de archivos nuevos', {
+      component: 'DocumentSearchComponent',
+      action: 'checkNewFiles'
+    });
     this.documentService.checkNewFiles().subscribe({
       next: (response) => {
+        this.logger.success('Detección de archivos completada', {
+          component: 'DocumentSearchComponent',
+          action: 'checkNewFiles',
+          details: {
+            total_found: response.total_found,
+            total_processed: response.total_processed
+          }
+        });
         // Abrir el modal con los resultados
         this.dialog.open(FileDetectionDialogComponent, {
           width: '500px',
@@ -101,6 +118,11 @@ export class DocumentSearchComponent implements OnInit, AfterViewInit {
         this.loadDocuments(this.currentSearchTerm);
       },
       error: (error) => {
+        this.logger.error('Error en la detección de archivos', {
+          component: 'DocumentSearchComponent',
+          action: 'checkNewFiles',
+          details: error
+        });
         // Mostrar error en el modal
         this.dialog.open(FileDetectionDialogComponent, {
           width: '500px',
@@ -117,13 +139,21 @@ export class DocumentSearchComponent implements OnInit, AfterViewInit {
         });
       },
       complete: () => {
+        this.logger.info('Proceso de detección finalizado', {
+          component: 'DocumentSearchComponent',
+          action: 'checkNewFiles'
+        });
         this.isCheckingNewFiles = false;
       }
     });
   }
   loadDocuments(searchTerm: string = ''): void {
     this.isLoading = true;
-
+    this.logger.info('Cargando documentos', {
+      component: 'DocumentSearchComponent',
+      action: 'loadDocuments',
+      details: { searchTerm }
+    });
     // Elegir el método de búsqueda según el estado del checkbox
     const searchMethod = this.isExactSearch ? 
       this.documentService.exactSearchDocuments(searchTerm) :
