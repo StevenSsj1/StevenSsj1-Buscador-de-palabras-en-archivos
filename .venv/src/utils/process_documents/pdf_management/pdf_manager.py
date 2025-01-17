@@ -51,9 +51,16 @@ class PDFManager:
         os.makedirs(output_dir, exist_ok=True)
 
         return os.path.join(output_dir, new_filename)
+    
     def process_pdf(self, pdf_path: str) -> Dict:
         """
         Procesa un PDF, determinando si es texto o imagen y usando el procesador apropiado.
+        
+        Args:
+            pdf_path (str): Ruta al archivo PDF
+            
+        Returns:
+            Dict: Diccionario con toda la información extraída
         """
         try:
             # Intentar primero con el procesador de texto
@@ -70,33 +77,16 @@ class PDFManager:
             logging.error(error_msg)
             return {'error': error_msg}
 
-    def process_all_pdfs(self) -> Dict[str, Dict]:
-        """
-        Procesa todos los PDFs en el directorio.
-        """
-        results = {}
-
-        for pdf_path in self.get_pdf_files():
-            try:
-                filename = os.path.basename(pdf_path)
-                logging.info(f"Procesando: {filename}")
-
-                # Procesar el PDF
-                pdf_info = self.process_pdf(pdf_path)
-
-                results[filename] = {
-                    'info': pdf_info
-                }
-
-                logging.info(f"Completado procesamiento de: {filename}")
-
-            except Exception as e:
-                logging.error(f"Error en archivo {filename}: {str(e)}")
-                results[filename] = {'error': str(e)}
-
-        return results
-
     def process_single_pdf(self, pdf_path: str) -> Tuple[str, Dict]:
+        """
+        Procesa un único PDF y retorna el resultado.
+        
+        Args:
+            pdf_path (str): Ruta al archivo PDF
+            
+        Returns:
+            Tuple[str, Dict]: Nombre del archivo y diccionario con la información extraída
+        """
         filename = os.path.basename(pdf_path)
         try:
             logging.info(f"Procesando: {filename}")
@@ -106,12 +96,13 @@ class PDFManager:
             logging.error(f"Error en archivo {filename}: {str(e)}")
             return filename, {'error': str(e)}
 
-        except Exception as e:
-            error_msg = f"Error procesando {pdf_path}: {str(e)}"
-            logging.error(error_msg)
-            return {'error': error_msg}
-
     def process_all_pdfs(self) -> Dict[str, Dict]:
+        """
+        Procesa todos los PDFs en el directorio.
+        
+        Returns:
+            Dict[str, Dict]: Diccionario con los resultados del procesamiento de cada archivo
+        """
         pdf_files = self.get_pdf_files()
         results = {}
         

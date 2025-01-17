@@ -1,10 +1,10 @@
-from elasticsearch import Elasticsearch
+from elasticsearch import AsyncElasticsearch  # Cambiamos la importación
 from typing import Dict, List, Optional
 import logging
 from datetime import datetime
 import os
 from pathlib import Path
-from .text_process_pdf import TextPDFProcessor
+from .pdf_manager import PDFManager
 from concurrent.futures import ThreadPoolExecutor
 
 class PDFElasticsearchService:
@@ -13,15 +13,16 @@ class PDFElasticsearchService:
         es_host: str = 'localhost',
         es_port: int = 9200,
         index_name: str = 'pdfs',
-        pdf_processor: Optional[TextPDFProcessor] = None,
+        root_directory: str = None,
         max_workers: int = 4
     ):
-        self.es = Elasticsearch([{'host': es_host, 'port': es_port, 'scheme': 'http'}])
+        # Usamos AsyncElasticsearch en lugar de Elasticsearch
+        self.es = AsyncElasticsearch([{'host': es_host, 'port': es_port, 'scheme': 'http'}])
         self.index_name = index_name
-        self.pdf_processor = pdf_processor or TextPDFProcessor()
+        self.root_directory = root_directory
+        self.pdf_manager = PDFManager(root_directory, max_workers) if root_directory else None
         self.max_workers = max_workers
         self.setup_logging()
-        self.setup_index()
 
     def setup_logging(self):
         logging.basicConfig(
@@ -30,8 +31,8 @@ class PDFElasticsearchService:
             filename='elasticsearch_pdf_service.log'
         )
 
-    def setup_index(self):
-        if not self.es.indices.exists(index=self.index_name):
+    async def setup_index(self):
+        if not await self.es.indices.exists(index=self.index_name):
             mapping = {
                 "mappings": {
                     "properties": {
@@ -42,7 +43,9 @@ class PDFElasticsearchService:
                             "type": "nested",
                             "properties": {
                                 "number": {"type": "integer"},
-                                "content": {"type": "text", "analyzer": "standard"}
+                                "content": {"type": "text", "analyzer": "standard"},
+                                "is_image": {"type": "boolean"},
+                                "confidence": {"type": "float"}
                             }
                         },
                         "total_pages": {"type": "integer"},
@@ -56,7 +59,8 @@ class PDFElasticsearchService:
                         "document_info": {
                             "properties": {
                                 "tamano_archivo": {"type": "long"},
-                                "fecha_procesamiento": {"type": "date", "format": "yyyy-MM-dd HH:mm:ss"}
+                                "fecha_procesamiento": {"type": "date", "format": "yyyy-MM-dd HH:mm:ss"},
+                                "tipo_procesamiento": {"type": "keyword"}
                             }
                         },
                         "indexed_date": {"type": "date", "format": "yyyy-MM-dd HH:mm:ss"},
@@ -88,9 +92,13 @@ class PDFElasticsearchService:
         except ValueError:
             return str(file_path)
 
-    def index_pdf(self, pdf_path: str, root_dir: Optional[str] = None) -> Dict:
+    async def index_pdf(self, pdf_path: str, root_dir: Optional[str] = None) -> Dict:
         try:
-            pdf_info = self.pdf_processor.extract_text_from_pdf(pdf_path)
+            # Usar PDFManager para procesar el PDF
+            if self.pdf_manager is None:
+                self.pdf_manager = PDFManager(root_dir or os.path.dirname(pdf_path))
+            
+            pdf_info = self.pdf_manager.process_pdf(pdf_path)
             
             if 'error' in pdf_info:
                 logging.error(f"Error procesando PDF {pdf_path}: {pdf_info['error']}")
@@ -98,18 +106,21 @@ class PDFElasticsearchService:
 
             path_obj = Path(pdf_path)
             root_path = Path(root_dir) if root_dir else path_obj.parent
-            relative_path = self.get_relative_path(path_obj, root_path)
+            relative_path = str(path_obj.relative_to(root_path))
             directory_structure = str(path_obj.parent)
 
             # Crear estructura de páginas
             pages = []
             for page_num, page_data in pdf_info['pages'].items():
-                pages.append({
+                page_info = {
                     "number": page_num,
-                    "content": page_data['texto']
-                })
+                    "content": page_data['texto'],
+                    "is_image": page_data.get('is_image', False),
+                    "confidence": page_data.get('confidence', 1.0)
+                }
+                pages.append(page_info)
 
-            # Crear un único documento para todo el PDF
+            # Crear documento para Elasticsearch
             document = {
                 "filename": path_obj.name,
                 "file_path": str(path_obj.absolute()),
@@ -118,14 +129,17 @@ class PDFElasticsearchService:
                 "pages": pages,
                 "total_pages": pdf_info['document_info']['numero_paginas'],
                 "metadata": pdf_info['metadata'],
-                "document_info": pdf_info['document_info'],
+                "document_info": {
+                    **pdf_info['document_info'],
+                    "tipo_procesamiento": "OCR" if any(p.get('is_image', False) for p in pages) else "texto"
+                },
                 "indexed_date": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             
             # Usar la ruta relativa como ID único del documento
             doc_id = relative_path
             
-            self.es.index(
+            await self.es.index(
                 index=self.index_name,
                 id=doc_id,
                 document=document
@@ -135,95 +149,15 @@ class PDFElasticsearchService:
             return {
                 "success": True,
                 "message": f"PDF indexado exitosamente con {len(pages)} páginas",
-                "indexed_pages": len(pages)
+                "indexed_pages": len(pages),
+                "processing_type": document["document_info"]["tipo_procesamiento"]
             }
 
         except Exception as e:
             error_msg = f"Error indexando PDF {pdf_path}: {str(e)}"
             logging.error(error_msg)
             return {"success": False, "error": error_msg}
-
-    def search_pdfs(
-        self, 
-        query: str, 
-        directory: Optional[str] = None,
-        fields: List[str] = None,
-        size: int = 10
-    ) -> Dict:
-        try:
-            if fields is None:
-                fields = ['pages.content', 'metadata.titulo', 'metadata.autor']
-
-            search_body = {
-                "query": {
-                    "bool": {
-                        "must": [
-                            {
-                                "nested": {
-                                    "path": "pages",
-                                    "query": {
-                                        "match": {
-                                            "pages.content": query
-                                        }
-                                    },
-                                    "inner_hits": {
-                                        "highlight": {
-                                            "fields": {
-                                                "pages.content": {}
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        ]
-                    }
-                },
-                "size": size
-            }
-
-            if directory:
-                search_body["query"]["bool"]["filter"] = {
-                    "prefix": {
-                        "directory_structure": str(Path(directory).absolute())
-                    }
-                }
-            
-            response = self.es.search(index=self.index_name, body=search_body)
-            
-            results = {
-                "total_hits": response["hits"]["total"]["value"],
-                "results": []
-            }
-            
-            for hit in response["hits"]["hits"]:
-                # Obtener las páginas que coinciden con la búsqueda
-                matching_pages = []
-                if "inner_hits" in hit:
-                    for inner_hit in hit["inner_hits"]["pages"]["hits"]["hits"]:
-                        page_number = inner_hit["_source"]["number"]
-                        highlights = inner_hit.get("highlight", {}).get("pages.content", [])
-                        matching_pages.append({
-                            "page_number": page_number,
-                            "highlights": highlights
-                        })
-
-                result = {
-                    "filename": hit["_source"]["filename"],
-                    "relative_path": hit["_source"]["relative_path"],
-                    "total_pages": hit["_source"]["total_pages"],
-                    "score": hit["_score"],
-                    "matching_pages": matching_pages,
-                    "metadata": hit["_source"]["metadata"]
-                }
-                results["results"].append(result)
-            
-            return results
-
-        except Exception as e:
-            error_msg = f"Error en la búsqueda: {str(e)}"
-            logging.error(error_msg)
-            return {"error": error_msg}
-
+        
     def process_directory(self, directory_path: str, parallel: bool = True) -> Dict:
         try:
             pdf_files = self.find_pdf_files(directory_path)
