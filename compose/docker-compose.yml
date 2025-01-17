@@ -2,11 +2,8 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
     container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - bootstrap.memory_lock=true
+    env_file:
+      - ../envs/elasticsearch.env
     ulimits:
       memlock:
         soft: -1
@@ -16,8 +13,11 @@ services:
     ports:
       - "9200:9200"
       - "9300:9300"
+      
     networks:
-      - elastic
+      elastic_network:
+        ipv4_address: 192.168.5.3
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9200"]
       interval: 30s
@@ -25,37 +25,44 @@ services:
       retries: 5
 
   pdf-processor:
-    build: .venv\
+    build:
+      context: ../
+      dockerfile: compose/backend/Dockerfile
+
+    env_file:
+      - ../envs/pdf-processor.env
     volumes:
       - ${PDF_DIR}:/app/pdfs
       - ${RUTA_SALIDA}:/app/pdfsoutput
-    environment:
-      - PDF_DIR=/app/pdfs
-      - RUTA_SALIDA=/app/pdfsoutput
-      - PYTHONUNBUFFERED=1
-      - ES_HOST=elasticsearch
-      - ES_PORT=9200
     ports:
       - "8000:8000"
     depends_on:
       elasticsearch:
         condition: service_healthy
     networks:
-      - elastic
+      elastic_network:
+        ipv4_address: 192.168.5.4
 
   web-app:
-    build: frontend\
+    build: 
+      context: ../
+      dockerfile: compose/frontend/Dockerfile
     ports:
       - "80:80"
     depends_on:
       - pdf-processor
     networks:
-      - elastic
+      elastic_network:
+        ipv4_address: 192.168.5.5
   
 volumes:
   elasticsearch-data:
     driver: local
 
 networks:
-  elastic:
+  elastic_network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.5.0/24
+          gateway: 192.168.5.1
